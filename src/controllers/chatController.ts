@@ -33,8 +33,12 @@ export const chatHandler = async (req: Request, res: Response): Promise<void> =>
     // Fetch recent history for context (optional, let's keep it simple or take last 2 messages)
     const history = await getSessionHistory(sessionId);
     // Construct a context-aware prompt
-    const systemPrompt = `You are a helpful news assistant. Answer the user's question based ONLY on the provided context.
-    If the answer is not in the context, say "I couldn't find relevant news about that."
+    const systemPrompt = `You are a helpful news assistant. 
+    
+    Rules:
+    1. If the user asks a general question (e.g., "Hi", "Who are you?", "How can you help?"), answer politely describing yourself as a News RAG bot.
+    2. For specific questions, answer based ONLY on the provided context below.
+    3. If the answer is not in the context, say "I couldn't find relevant news about that in my database."
     
     Context:
     ${context}
