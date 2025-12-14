@@ -5,10 +5,14 @@ import { Chunk } from '../types';
 dotenv.config();
 
 const QDRANT_URL = process.env.QDRANT_URL || 'http://localhost:6333';
-const COLLECTION_NAME = 'news_articles';
+const QDRANT_API_KEY = process.env.QDRANT_API_KEY; // For Cloud
+const COLLECTION_NAME = "news_articles";
 const VECTOR_SIZE = 768; // Jina v2 base size
 
-const client = new QdrantClient({ url: QDRANT_URL });
+const client = new QdrantClient({
+  url: QDRANT_URL,
+  apiKey: QDRANT_API_KEY,
+});
 
 export const initQdrant = async () => {
   try {

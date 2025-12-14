@@ -62,6 +62,7 @@ const main = async () => {
   }
 
   console.log("Ingestion complete!");
+  process.exit(0);
 };
 
 main();
