@@ -1,52 +1,78 @@
-# News RAG Backend
+# News Q&A Chatbot - Backend
 
-This is the backend for the News Q&A Chatbot. It handles:
-- Ingestion of news from RSS feeds.
-- Chunking and embedding using Jina AI.
-- Storing vectors in Qdrant.
-- Chat API with RAG using Google Gemini.
-- Session management using Redis.
+A strictly retrieval-augmented generation (RAG) backend that ingests news from RSS feeds, embeds them into a vector database, and serves a chat API using Google Gemini.
 
-## Setup
+## 📚 Tech Stack
 
-1. **Install Dependencies**:
-   ```bash
-   npm install
-   ```
+*   **Runtime**: Node.js (v20), TypeScript
+*   **Framework**: Express.js
+*   **Vector Database**: Qdrant
+*   **Caching**: Redis
+*   **AI/ML**: 
+    *   Text Embeddings: Jina AI
+    *   LLM: Google Gemini
+*   **Tools**: Docker, Cheerio (Scraping), RSS Parser
 
-2. **Environment Variables**:
-   Copy `.env.example` to `.env` and fill in the values:
-   - `JINA_API_KEY`: Get from [Jina AI](https://jina.ai/).
-   - `GEMINI_API_KEY`: Get from [Google AI Studio](https://aistudio.google.com/).
-   - `QDRANT_URL`: Defaults to `http://localhost:6333` (local Docker).
-   - `REDIS_URL`: Defaults to `redis://localhost:6379` (local Docker).
+## 🚀 Getting Started
 
-3. **Start Infrastructure**:
-   Go to the project root (parent directory) and run:
-   ```bash
-   docker-compose up -d
-   ```
-   This starts Qdrant (Vector DB) and Redis (Cache).
+### 1. Prerequisites
+*   Node.js installed (or Docker)
+*   Qdrant instance (Local or Cloud)
+*   Redis instance (Local or Cloud)
+*   API Keys: Jina AI, Google Gemini
 
-## Ingestion
+### 2. Environment Variables
+Create a `.env` file in this directory:
+```env
+PORT=3000
+JINA_API_KEY=your_jina_key
+GEMINI_API_KEY=your_gemini_key
 
-Before chatting, you need to ingest news data:
+# Local Development
+QDRANT_URL=http://localhost:6333
+REDIS_URL=redis://localhost:6379
 
-```bash
-npm run ingest
+# Or Cloud Deployment
+# QDRANT_URL=https://xyz.qdrant.tech
+# QDRANT_API_KEY=your_qdrant_key
+# REDIS_URL=redis://:password@host:port
 ```
-This script fetches news from RSS feeds, embeds them, and stores them in Qdrant.
 
-## Running the Server
-
+### 3. Run Locally (Docker - Recommended)
+This simulates the exact deployment environment.
 ```bash
-npm run dev
+docker build -t news-rag-backend .
+docker run -p 3000:3000 --env-file .env news-rag-backend
 ```
-The server will start on `http://localhost:3000`.
 
-## API Endpoints
+### 4. Run Locally (Node.js)
+```bash
+# Install dependencies
+npm install
 
-- `POST /api/chat`: Send a message. Body: `{ sessionId, message }`.
-- `GET /api/chat/:sessionId/history`: Get chat history.
-- `DELETE /api/chat/:sessionId`: Clear chat session.
-# news-rag-backend
+# Build
+npm run build
+
+# Start (Runs Ingestion + Server)
+npm start
+```
+
+## 📖 Documentation
+*   [Code Walkthrough & Architecture](./CODE_WALKTHROUGH.md) - Detailed explanation of the internal flow.
+*   [API Documentation](./README.md#api-endpoints)
+
+## 📡 API Endpoints
+
+### `POST /api/chat`
+Ask a question to the bot.
+*   Body: `{ "sessionId": "string", "message": "string" }`
+*   Response: `{ "reply": "string", "references": [] }`
+
+### `GET /api/chat/:sessionId/history`
+Get past messages for a specific session.
+
+### `DELETE /api/chat/:sessionId`
+Clear session history.
+
+### `GET /api/articles`
+Debug endpoint to see currently ingested news titles.
