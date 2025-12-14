@@ -17,8 +17,11 @@ export const generateAnswer = async (prompt: string): Promise<string> => {
     const result = await model.generateContent(prompt);
     const response = await result.response;
     return response.text();
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error calling Gemini:', error);
-    return 'Sorry, I am having trouble generating an answer right now.';
+    if (error.status === 429 || (error.message && error.message.includes('429'))) {
+      throw new Error('RATE_LIMIT');
+    }
+    throw error;
   }
 };
