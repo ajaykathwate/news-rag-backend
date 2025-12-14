@@ -1,20 +1,23 @@
 import { fetchRssFeed } from '../services/rssService';
 import { chunkArticle } from '../services/textService';
 import { getEmbeddings } from '../services/jinaService';
-import { initQdrant, storeChunks } from '../services/qdrantService';
-import { Chunk } from '../types';
+import { resetCollection, storeChunks } from "../services/qdrantService";
+import { Chunk } from "../types";
 
 const FEEDS = [
-  { url: 'http://feeds.bbci.co.uk/news/technology/rss.xml', source: 'BBC Technology' },
-  { url: 'http://feeds.bbci.co.uk/news/world/rss.xml', source: 'BBC World' },
-  { url: 'https://techcrunch.com/feed/', source: 'TechCrunch' }
+  {
+    url: "http://feeds.bbci.co.uk/news/technology/rss.xml",
+    source: "BBC Technology",
+  },
+  { url: "http://feeds.bbci.co.uk/news/world/rss.xml", source: "BBC World" },
+  { url: "https://techcrunch.com/feed/", source: "TechCrunch" },
 ];
 
 const main = async () => {
-  console.log('Starting ingestion...');
-  
-  // 1. Init Vector DB
-  await initQdrant();
+  console.log("Starting ingestion...");
+
+  // 1. Reset Vector DB (Clean old/bad data)
+  await resetCollection();
 
   let allChunks: Chunk[] = [];
 
@@ -38,12 +41,12 @@ const main = async () => {
 
   for (let i = 0; i < allChunks.length; i += BATCH_SIZE) {
     const batch = allChunks.slice(i, i + BATCH_SIZE);
-    const texts = batch.map(c => c.text);
-    
+    const texts = batch.map((c) => c.text);
+
     console.log(`Embedding batch ${i / BATCH_SIZE + 1}...`);
     try {
       const vectors = await getEmbeddings(texts);
-      
+
       // Assign vectors to chunks
       batch.forEach((chunk, idx) => {
         chunk.vector = vectors[idx];
@@ -53,12 +56,12 @@ const main = async () => {
     } catch (err) {
       console.error(`Failed to file batch starting index ${i}`, err);
     }
-    
+
     // Simple rate limiting delay
-    await new Promise(resolve => setTimeout(resolve, 500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
   }
 
-  console.log('Ingestion complete!');
+  console.log("Ingestion complete!");
 };
 
 main();

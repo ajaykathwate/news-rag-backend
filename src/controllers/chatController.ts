@@ -3,30 +3,50 @@ import { getEmbeddings } from '../services/jinaService';
 import { searchSimilar } from '../services/qdrantService';
 import { generateAnswer } from '../services/geminiService';
 import { addMessageToHistory, getSessionHistory, clearSessionHistory, ChatMessage } from '../services/redisService';
+import { getAllArticles } from "../services/qdrantService";
 
-export const chatHandler = async (req: Request, res: Response): Promise<void> => {
+export const chatHandler = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { sessionId, message } = req.body;
 
   if (!sessionId || !message) {
-    res.status(400).json({ error: 'sessionId and message are required' });
+    res.status(400).json({ error: "sessionId and message are required" });
     return;
   }
 
   try {
     // 1. Add User Message to History
-    const userMsg: ChatMessage = { role: 'user', content: message, timestamp: Date.now() };
+    const userMsg: ChatMessage = {
+      role: "user",
+      content: message,
+      timestamp: Date.now(),
+    };
     await addMessageToHistory(sessionId, userMsg);
 
     // 2. Embed Query
     const [queryVector] = await getEmbeddings([message]);
 
     // 3. Search Context
-    const searchResults = await searchSimilar(queryVector, 3);
-    const context = searchResults.map(r => r.payload?.text).join('\n\n');
-    const references = searchResults.map(r => ({
+    const searchResults = await searchSimilar(queryVector, 5); // Increased limit to 5
+
+    console.log("--- DEBUG: Search Results ---");
+    searchResults.forEach((r, i) => {
+      console.log(`[${i}] Score: ${r.score}, Title: ${r.payload?.title}`);
+      console.log(
+        `Content Preview: ${(r.payload?.text as string)?.slice(0, 100)}...`
+      );
+    });
+
+    const context = searchResults.map((r) => r.payload?.text).join("\n\n");
+    console.log("--- DEBUG: Final Context ---");
+    console.log(context);
+
+    const references = searchResults.map((r) => ({
       title: r.payload?.title,
       url: r.payload?.url,
-      source: r.payload?.source
+      source: r.payload?.source,
     }));
 
     // 4. Build Prompt
@@ -47,16 +67,22 @@ export const chatHandler = async (req: Request, res: Response): Promise<void> =>
     `;
 
     // 5. Generate Answer
+    console.log("--- DEBUG: Full System Prompt ---");
+    console.log(systemPrompt);
     const answer = await generateAnswer(systemPrompt);
 
     // 6. Save Bot Answer
-    const botMsg: ChatMessage = { role: 'bot', content: answer, timestamp: Date.now() };
+    const botMsg: ChatMessage = {
+      role: "bot",
+      content: answer,
+      timestamp: Date.now(),
+    };
     await addMessageToHistory(sessionId, botMsg);
 
     res.json({ reply: answer, references });
   } catch (error) {
-    console.error('Chat error:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Chat error:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 };
 
@@ -70,4 +96,9 @@ export const deleteSessionHandler = async (req: Request, res: Response) => {
   const { sessionId } = req.params;
   await clearSessionHistory(sessionId);
   res.sendStatus(204);
+};
+
+export const getArticlesHandler = async (req: Request, res: Response) => {
+  const articles = await getAllArticles();
+  res.json({ count: articles.length, articles });
 };
