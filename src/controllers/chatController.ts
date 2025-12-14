@@ -53,14 +53,17 @@ export const chatHandler = async (
     // Fetch recent history for context (optional, let's keep it simple or take last 2 messages)
     const history = await getSessionHistory(sessionId);
     // Construct a context-aware prompt
-    const systemPrompt = `You are a helpful news assistant. 
-    
-    Rules:
-    1. If the user asks a general question (e.g., "Hi", "Who are you?", "How can you help?"), answer politely describing yourself as a News RAG bot.
-    2. For specific questions, answer based ONLY on the provided context below.
-    3. If the answer is not in the context, say "I couldn't find relevant news about that in my database."
-    
-    Context:
+    const systemPrompt = `You are an expert news analyst. Your goal is to provide **concise, direct, and crisp** answers based on the provided news context.
+
+    Guidelines:
+    1. **Length**: Keep answers short (max 2-3 sentences). Get straight to the point.
+    2. **Style**: Professional and journalistic, but efficient. Do not ramble.
+    3. **Source**: Answer based ONLY on the provided context below.
+    4. **Tone**: State facts directly. Do not simply list article titles unless asked.
+    5. **Follow-up**: If the topic is complex, summarize the main point and ask if the user wants more details.
+    6. **Missing Info**: If the answer is not in the context, say: "I don't have information on that specific topic right now."
+
+    Context Articles:
     ${context}
     
     User Query: ${message}
@@ -80,8 +83,17 @@ export const chatHandler = async (
     await addMessageToHistory(sessionId, botMsg);
 
     res.json({ reply: answer, references });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Chat error:", error);
+
+    if (error.message === "RATE_LIMIT") {
+      const limitMsg =
+        "You have exceeded the API limit. Please wait for a moment and try again.";
+      // Optionally save this system message to history or just return it ephemeral
+      res.json({ reply: limitMsg, references: [] });
+      return;
+    }
+
     res.status(500).json({ error: "Internal server error" });
   }
 };
